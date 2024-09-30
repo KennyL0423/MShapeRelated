@@ -1,0 +1,8 @@
+﻿tsfresh~=0.20
+scikit-learn~=1.3
+numpy~=1.25
+pandas~=2.1
+tqdm~=4.66
+numba~=0.58
+dask~=2023.10
+scipy~=1.11
