@@ -1,5 +1,8 @@
 package org;
 
+import org.util.DataLoader;
+import org.util.LinearRegression;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -9,75 +12,112 @@ import java.util.List;
 import java.util.Random;
 
 public class wFCM {
-    private static final int MAX_ITERATIONS = 100;
-    private static final double THRESHOLD = 1e-4;
-    private static final int M = 2; // Fuzzification coefficient
+    int MAX_ITERATIONS = 100;
+    double THRESHOLD = 1e-4;
+    int M = 2; // Fuzzification coefficient
+    int seqLen;
+    int clusterNum;
+    List<double[]> data;
+    List<List<TIG>> tigsOfAllData;
 
-    static int seqLen = 166;
-    static int clusterNum = 3;
-
-    static int seqNum = 190;
 
     public static void main(String[] args) {
-//        String csvFile = "/Users/suyx1999/Downloads/jinfeng.csv";
-
         long start = System.currentTimeMillis();
         String csvFile = "/Users/suyx1999/ExpData/shape/air.csv";
+//        String csvFile = "/Users/suyx1999/Downloads/jinfeng.csv";
 
-        // Read time series data from the CSV file
-        List<double[]> timeSeriesData = readTimeSeriesFromCSV(csvFile);
-
-        int numSeries = timeSeriesData.size(); // Number of time series
-
-        // Initialize membership matrix U
-        double[][] U = initializeMembershipMatrix(numSeries, clusterNum);
-
-        // Iterate and update U and cluster prototypes
-        fuzzyClustering(timeSeriesData, clusterNum, U);
-
-        // Final cluster assignment (for each time series, the highest membership value determines its cluster)
-        for (int i = 0; i < numSeries; i++) {
-            int assignedCluster = findMaxIndex(U[i]);
-//            System.out.println("Time series " + i + " belongs to cluster " + assignedCluster);
-        }
+        List<double[]> timeSeriesData = DataLoader.readTimeSeriesFromCSV(csvFile, 166);
+        wFCM clustering = new wFCM(timeSeriesData, 166, 3, 100);
+        int[] clusterLabels = clustering.fit();
 
         long end = System.currentTimeMillis();
         System.out.println("Time taken: " + (end - start) + "ms");
     }
-    private static List<double[]> readTimeSeriesFromCSV(String filePath) {
-        List<double[]> timeSeriesData = new ArrayList<>();
-        double[] seq = new double[seqLen];
 
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
-            String line;
-            boolean isFirstLine = true;
-
-            int cnt = 0;
-            while ((line = br.readLine()) != null) {
-                if (isFirstLine) {
-                    isFirstLine = false;
-                    continue;
-                }
-                String[] values = line.split(",");
-
-                if (values.length < 2) seq[cnt] = 0.0;
-                else seq[cnt] = Double.parseDouble(values[1]);
-                cnt += 1;
-                if (cnt == seqLen) {
-                    timeSeriesData.add(seq.clone());
-                    seq = new double[seqLen];
-                    cnt = 0;
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return timeSeriesData;
+    public wFCM(List<double[]> data, int seqLen, int cluserNum, int max_iter) {
+        this.data = data;
+        this.seqLen = seqLen;
+        this.clusterNum = cluserNum;
+        this.MAX_ITERATIONS = max_iter;
+        this.tigsOfAllData = new ArrayList<>();
     }
 
+    public int[] fit(){
+        int n = data.size();
+        transformTIG();
+        double[][] U = initializeMembershipMatrix(n, clusterNum);
+        fuzzyClustering(data, clusterNum, U);
+        int[] labels = new int[n];
+        for (int i = 0; i < n; i++) {
+            labels[i] = findMaxIndex(U[i]);
+        }
+        return labels;
+    }
+
+    private static class TIG{
+        public double tigK; //slope
+        public double[] tigInterval; // information granularity interval
+        public int tigL;
+
+        public TIG(double k, double[] interval, int l){
+            this.tigK = k;
+            this.tigInterval = interval;
+            this.tigL = l;
+        }
+
+        public static double DTW(List<TIG> x, List<TIG> y){
+            int n = x.size();
+            int m = y.size();
+
+            // 创建一个 n+1 * m+1 的矩阵用于存储中间计算结果
+            double[][] dtw = new double[n+1][m+1];
+
+            // 初始化矩阵的第一个元素为无穷大
+            for (int i = 1; i <= n; i++)
+                dtw[i][0] = Double.MAX_VALUE;
+            for (int i = 1; i <= m; i++)
+                dtw[0][i] = Double.MAX_VALUE;
+
+            dtw[0][0] = 0;
+            // 计算 DTW 距离
+            for (int i = 1; i <= n; i++) {
+                for (int j = 1; j <= m; j++) {
+                    double dG = Math.max(Math.abs(x.get(i-1).tigInterval[0] - y.get(j-1).tigInterval[0]),
+                            Math.abs(x.get(i-1).tigInterval[1] - y.get(j-1).tigInterval[1]));
+                    double dt = (x.get(i-1).tigL + y.get(j-1).tigL) * 1.0 / 2 * Math.abs(x.get(i-1).tigK - y.get(j-1).tigK);
+                    dtw[i][j] = dG + dt + Math.min(Math.min(dtw[i - 1][j],
+                                    dtw[i][j - 1]),
+                            dtw[i - 1][j - 1]
+                    );
+                }
+            }
+            // 返回最终的 DTW 距离
+            return dtw[n][m];
+        }
+
+
+    }
+
+    private void transformTIG(){
+        int l = data.get(0).length;
+        int partNum = 4; // parameter q in the paper
+        for (double[] seq: data){
+            List<TIG> tigArray = new ArrayList<>();
+            // divide seq into 4 parts with equal length and calculate the slope of each part
+            for (int s = 0; s < partNum; s++){
+                double[] part = Arrays.copyOfRange(seq, s * l / partNum, (s + 1) * l / partNum);
+                LinearRegression lr = new LinearRegression(part);
+                TIG tig = new TIG(lr.getSlope(), lr.findInfoGran(), part.length);
+                tigArray.add(tig);
+            }
+            tigsOfAllData.add(tigArray);
+        }
+    }
+
+
+
     // Function to initialize the membership matrix randomly
-    private static double[][] initializeMembershipMatrix(int numSeries, int numClusters) {
+    private double[][] initializeMembershipMatrix(int numSeries, int numClusters) {
         double[][] U = new double[numSeries][numClusters];
         Random random = new Random();
         for (int i = 0; i < numSeries; i++) {
@@ -95,7 +135,7 @@ public class wFCM {
     }
 
     // Fuzzy clustering algorithm based on DTW
-    private static void fuzzyClustering(List<double[]> timeSeriesData, int numClusters, double[][] U) {
+    private void fuzzyClustering(List<double[]> timeSeriesData, int numClusters, double[][] U) {
         int n = timeSeriesData.size();
         int l = timeSeriesData.get(0).length;
 
@@ -149,7 +189,7 @@ public class wFCM {
     }
 
     // Function to calculate DTW distance between two time series
-    private static double DTW(double[] series1, double[] series2) {
+    private double DTW(double[] series1, double[] series2) {
         int n = series1.length;
         int m = series2.length;
         double[][] dtw = new double[n + 1][m + 1];

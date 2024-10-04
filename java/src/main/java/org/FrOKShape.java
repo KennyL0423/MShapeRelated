@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Random;
 
 import org.util.Complex;
+import org.util.DataLoader;
 import org.util.FFT;
 
 public class FrOKShape {
@@ -23,10 +24,10 @@ public class FrOKShape {
         long start = System.currentTimeMillis();
 //        String csvFile = "/Users/suyx1999/Downloads/jinfeng.csv";
         String csvFile = "/Users/suyx1999/ExpData/shape/air.csv";
-        List<double[]> timeSeriesData = readTimeSeriesFromCSV(csvFile, 166);
+        List<double[]> timeSeriesData = DataLoader.readTimeSeriesFromCSV(csvFile, 166);
 
         FrOKShape clustering = new FrOKShape(timeSeriesData,  166, 3, 0.6, 100);
-        int[] clusterLabels = clustering.Fit();
+        int[] clusterLabels = clustering.fit();
 
         long end = System.currentTimeMillis();
         System.out.println("Time taken: " + (end - start) + "ms");
@@ -44,41 +45,10 @@ public class FrOKShape {
         this.MAX_ITERATIONS = max_iter;
     }
 
-    public int[] Fit(){
+    public int[] fit(){
         return FrOKShapeClustering(data, clusterNum);
     }
 
-    private static List<double[]> readTimeSeriesFromCSV(String filePath, int seqLen) {
-        List<double[]> timeSeriesData = new ArrayList<>();
-        double[] seq = new double[seqLen];
-
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
-            String line;
-            boolean isFirstLine = true;
-
-            int cnt = 0;
-            while ((line = br.readLine()) != null) {
-                if (isFirstLine) {
-                    isFirstLine = false;
-                    continue;
-                }
-                String[] values = line.split(",");
-
-                if (values.length < 2) seq[cnt] = 0.0;
-                else seq[cnt] = Double.parseDouble(values[1]);
-                cnt += 1;
-                if (cnt == seqLen) {
-                    timeSeriesData.add(seq.clone());
-                    seq = new double[seqLen];
-                    cnt = 0;
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return timeSeriesData;
-    }
 
     // FrOKShape Clustering Method
     public int[] FrOKShapeClustering(List<double[]> X, int K) {
