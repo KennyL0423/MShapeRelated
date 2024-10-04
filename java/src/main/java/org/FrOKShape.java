@@ -1,6 +1,7 @@
-package org.example;
+package org;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -8,22 +9,24 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
+import org.util.Complex;
+import org.util.FFT;
+
 public class FrOKShape {
-    private static final int MAX_ITERATIONS = 100;
-    static int seqLen = 166;
-    static int clusterNum = 3;
+    int MAX_ITERATIONS;
+    int seqLen;
+    int clusterNum;
+    double alpha;
+    List<double[]> data;
 
     public static void main(String[] args) {
-
         long start = System.currentTimeMillis();
 //        String csvFile = "/Users/suyx1999/Downloads/jinfeng.csv";
         String csvFile = "/Users/suyx1999/ExpData/shape/air.csv";
-        List<double[]> timeSeriesData = readTimeSeriesFromCSV(csvFile);
-        int numSeries = timeSeriesData.size();
+        List<double[]> timeSeriesData = readTimeSeriesFromCSV(csvFile, 166);
 
-        // init labels
-        int[] labels = new int[numSeries];
-        int[] clusterLabels = FrOKShapeClustering(timeSeriesData, clusterNum);
+        FrOKShape clustering = new FrOKShape(timeSeriesData,  166, 3, 0.6, 100);
+        int[] clusterLabels = clustering.Fit();
 
         long end = System.currentTimeMillis();
         System.out.println("Time taken: " + (end - start) + "ms");
@@ -33,7 +36,19 @@ public class FrOKShape {
 //        }
     }
 
-    private static List<double[]> readTimeSeriesFromCSV(String filePath) {
+    public FrOKShape(List<double[]> data, int seqLen, int cluserNum, double alpha, int max_iter) {
+        this.data = data;
+        this.seqLen = seqLen;
+        this.clusterNum = cluserNum;
+        this.alpha = alpha;
+        this.MAX_ITERATIONS = max_iter;
+    }
+
+    public int[] Fit(){
+        return FrOKShapeClustering(data, clusterNum);
+    }
+
+    private static List<double[]> readTimeSeriesFromCSV(String filePath, int seqLen) {
         List<double[]> timeSeriesData = new ArrayList<>();
         double[] seq = new double[seqLen];
 
@@ -66,7 +81,7 @@ public class FrOKShape {
     }
 
     // FrOKShape Clustering Method
-    public static int[] FrOKShapeClustering(List<double[]> X, int K) {
+    public int[] FrOKShapeClustering(List<double[]> X, int K) {
         int n = X.size();
         int l = X.get(0).length;
         int[] labels = new int[n]; // Cluster labels
@@ -105,12 +120,13 @@ public class FrOKShape {
                 System.out.println("Converged after " + iter + " iterations.");
                 break;
             }
+            System.out.println("Iteration " + iter + " completed.");
         }
         return labels;
     }
 
     // Calculate the Determining Clustering Center using DBA
-    private static double[] DeterminClusteringCenter(List<double[]> X, int[] labels, int k) {
+    private double[] DeterminClusteringCenter(List<double[]> X, int[] labels, int k) {
         int n = X.size();
         int l = X.get(0).length;
         double[] center = new double[l];
@@ -124,7 +140,6 @@ public class FrOKShape {
                 count++;
             }
         }
-
         if (count > 0) {
             for (int j = 0; j < l; j++) {
                 center[j] /= count;
@@ -135,47 +150,24 @@ public class FrOKShape {
     }
 
     // Fractional Order Shape-Based Distance (FrOSBD)
-    private static double FrOSBD(double[] x, double[] y) {
-        // Assuming p is the fractional order (can be parameterized)
-        double maxFrONCC = 0;
-        int l = x.length;
+    private double FrOSBD(double[] x, double[] y) {
+        double den = FFT.norm(x) * FFT.norm(y);
+        if (den < 1e-9) den = Double.MAX_VALUE;
+        int l = x.length; // l
+        int fft_size = (int) Math.pow(2, Integer.toBinaryString(2 * l - 1).length());
 
-        for (int shift = -l + 1; shift < l; shift++) {
-            double FrONCC = fractionalCorrelation(x, y, shift);
-            maxFrONCC = Math.max(maxFrONCC, FrONCC);
-        }
+        Complex[] X_alpha = FFT.frft(x, alpha);
+        Complex[] Y_alpha = FFT.frft(y, alpha);
 
-        return 1.0 - maxFrONCC;
+        double[] cc =
+                FFT.ifft(Complex.multiply(X_alpha, Complex.conjugate(Y_alpha)));
+        double[] ncc = new double[fft_size - 1];
+        for (int i = 0; i < fft_size - 1; i++)
+            if (i < l - 1) ncc[i] = cc[cc.length - l + 1 + i] / den;
+            else ncc[i] = cc[i - l + 1] / den;
+        double maxFroncc = Arrays.stream(ncc).max().getAsDouble();
+        return 1.0 - maxFroncc;
     }
 
-    // Fractional Correlation Calculation (FrOCC)
-    private static double fractionalCorrelation(double[] x, double[] y, int shift) {
-        double sum = 0.0;
-
-        for (int i = 0; i < x.length; i++) {
-            int j = (i + shift) % y.length;
-            if (j < 0) j += y.length;
-            sum += x[i] * y[j];
-        }
-
-        return sum / (norm(x) * norm(y));
-    }
-
-    // Function to calculate the norm of a time series
-    private static double norm(double[] series) {
-        double sum = 0.0;
-        for (double v : series) {
-            sum += v * v;
-        }
-        return Math.sqrt(sum);
-    }
-
-    private static double norm(List<Double> series) {
-        double sum = 0.0;
-        for (double v : series) {
-            sum += v * v;
-        }
-        return Math.sqrt(sum);
-    }
 }
 
