@@ -13,54 +13,66 @@ public class wFCM {
     private static final double THRESHOLD = 1e-4;
     private static final int M = 2; // Fuzzification coefficient
 
+    static int seqLen = 166;
+    static int clusterNum = 3;
+
+    static int seqNum = 190;
+
     public static void main(String[] args) {
-        String csvFile = "path_to_your_file.csv";
+//        String csvFile = "/Users/suyx1999/Downloads/jinfeng.csv";
+
+        long start = System.currentTimeMillis();
+        String csvFile = "/Users/suyx1999/ExpData/shape/air.csv";
 
         // Read time series data from the CSV file
-        double[][] timeSeriesData = readTimeSeriesFromCSV(csvFile);
+        List<double[]> timeSeriesData = readTimeSeriesFromCSV(csvFile);
 
-        int numClusters = 2; // Number of clusters
-        int numSeries = timeSeriesData.length; // Number of time series
+        int numSeries = timeSeriesData.size(); // Number of time series
 
         // Initialize membership matrix U
-        double[][] U = initializeMembershipMatrix(numSeries, numClusters);
+        double[][] U = initializeMembershipMatrix(numSeries, clusterNum);
 
         // Iterate and update U and cluster prototypes
-        fuzzyClustering(timeSeriesData, numClusters, U);
+        fuzzyClustering(timeSeriesData, clusterNum, U);
 
         // Final cluster assignment (for each time series, the highest membership value determines its cluster)
         for (int i = 0; i < numSeries; i++) {
             int assignedCluster = findMaxIndex(U[i]);
-            System.out.println("Time series " + i + " belongs to cluster " + assignedCluster);
+//            System.out.println("Time series " + i + " belongs to cluster " + assignedCluster);
         }
+
+        long end = System.currentTimeMillis();
+        System.out.println("Time taken: " + (end - start) + "ms");
     }
-    private static double[][] readTimeSeriesFromCSV(String filePath) {
-        List<List<Double>> timeSeriesList = new ArrayList<>();
+    private static List<double[]> readTimeSeriesFromCSV(String filePath) {
+        List<double[]> timeSeriesData = new ArrayList<>();
+        double[] seq = new double[seqLen];
+
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line;
             boolean isFirstLine = true;
+
+            int cnt = 0;
             while ((line = br.readLine()) != null) {
                 if (isFirstLine) {
-                    isFirstLine = false; // Skip the header
+                    isFirstLine = false;
                     continue;
                 }
                 String[] values = line.split(",");
-                if (values.length > 1) {
-                    double value = Double.parseDouble(values[1]);
-                    if (timeSeriesList.isEmpty()) {
-                        timeSeriesList.add(new ArrayList<>());
-                    }
-                    timeSeriesList.get(0).add(value);
+
+                if (values.length < 2) seq[cnt] = 0.0;
+                else seq[cnt] = Double.parseDouble(values[1]);
+                cnt += 1;
+                if (cnt == seqLen) {
+                    timeSeriesData.add(seq.clone());
+                    seq = new double[seqLen];
+                    cnt = 0;
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
-        double[][] timeSeriesData = new double[timeSeriesList.size()][];
-        for (int i = 0; i < timeSeriesList.size(); i++) {
-            List<Double> series = timeSeriesList.get(i);
-            timeSeriesData[i] = series.stream().mapToDouble(Double::doubleValue).toArray();
-        }
+
         return timeSeriesData;
     }
 
@@ -83,22 +95,26 @@ public class wFCM {
     }
 
     // Fuzzy clustering algorithm based on DTW
-    private static void fuzzyClustering(double[][] timeSeriesData, int numClusters, double[][] U) {
-        int numSeries = timeSeriesData.length;
-        int length = timeSeriesData[0].length;
+    private static void fuzzyClustering(List<double[]> timeSeriesData, int numClusters, double[][] U) {
+        int n = timeSeriesData.size();
+        int l = timeSeriesData.get(0).length;
 
         // Cluster prototypes (initially set to random time series)
         double[][] clusterPrototypes = initializeClusterPrototypes(timeSeriesData, numClusters);
 
         for (int iter = 0; iter < MAX_ITERATIONS; iter++) {
             // Step 1: Update the membership matrix U
-            for (int i = 0; i < numSeries; i++) {
+            for (int i = 0; i < n; i++) {
                 for (int j = 0; j < numClusters; j++) {
                     double sum = 0.0;
                     for (int k = 0; k < numClusters; k++) {
-                        double ratio = DTW(timeSeriesData[i], clusterPrototypes[j]) /
-                                DTW(timeSeriesData[i], clusterPrototypes[k]);
-                        sum += Math.pow(ratio, 2 / (M - 1));
+                        double dtw1 = DTW(timeSeriesData.get(i), clusterPrototypes[j]);
+                        double dtw2 = DTW(timeSeriesData.get(i), clusterPrototypes[k]);
+                        if (Math.abs(dtw1 - dtw2) < 1e-6) {
+                            sum += 1.0;
+                        } else {
+                            sum += Math.pow(dtw1 / dtw2, 2 / (M - 1));
+                        }
                     }
                     U[i][j] = 1.0 / sum;
                 }
@@ -106,12 +122,12 @@ public class wFCM {
 
             // Step 2: Update the cluster prototypes
             for (int j = 0; j < numClusters; j++) {
-                for (int t = 0; t < length; t++) {
+                for (int t = 0; t < l; t++) {
                     double numerator = 0.0;
                     double denominator = 0.0;
-                    for (int i = 0; i < numSeries; i++) {
+                    for (int i = 0; i < n; i++) {
                         double u_ij_m = Math.pow(U[i][j], M);
-                        numerator += u_ij_m * timeSeriesData[i][t];
+                        numerator += u_ij_m * timeSeriesData.get(i)[t];
                         denominator += u_ij_m;
                     }
                     clusterPrototypes[j][t] = numerator / denominator;
@@ -120,7 +136,7 @@ public class wFCM {
 
             // Step 3: Check for convergence
             double maxChange = 0.0;
-            for (int i = 0; i < numSeries; i++) {
+            for (int i = 0; i < n; i++) {
                 for (int j = 0; j < numClusters; j++) {
                     maxChange = Math.max(maxChange, Math.abs(U[i][j] - clusterPrototypes[j][i]));
                 }
@@ -166,12 +182,12 @@ public class wFCM {
     }
 
     // Function to initialize cluster prototypes by selecting random time series
-    private static double[][] initializeClusterPrototypes(double[][] timeSeriesData, int numClusters) {
-        double[][] prototypes = new double[numClusters][timeSeriesData[0].length];
+    private static double[][] initializeClusterPrototypes(List<double[]> timeSeriesData, int numClusters) {
+        double[][] prototypes = new double[numClusters][timeSeriesData.get(0).length];
         Random random = new Random();
         for (int i = 0; i < numClusters; i++) {
-            int randomIndex = random.nextInt(timeSeriesData.length);
-            System.arraycopy(timeSeriesData[randomIndex], 0, prototypes[i], 0, timeSeriesData[0].length);
+            int randomIndex = random.nextInt(timeSeriesData.size());
+            System.arraycopy(timeSeriesData.get(randomIndex), 0, prototypes[i], 0, timeSeriesData.get(0).length);
         }
         return prototypes;
     }
