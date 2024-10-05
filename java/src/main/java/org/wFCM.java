@@ -11,12 +11,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+
 public class wFCM {
     int MAX_ITERATIONS = 100;
     double THRESHOLD = 1e-4;
     int M = 2; // Fuzzification coefficient
     int alpha = 5;
-    int qmax = 20;
+    int qmax = 50;
     int seqLen;
     int clusterNum;
     List<double[]> data;
@@ -25,7 +26,7 @@ public class wFCM {
     int[] labels;
 
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         long start = System.currentTimeMillis();
         String csvFile = "/Users/suyx1999/ExpData/shape/air.csv";
 //        String csvFile = "/Users/suyx1999/Downloads/jinfeng.csv";
@@ -33,6 +34,7 @@ public class wFCM {
         List<double[]> timeSeriesData = DataLoader.readTimeSeriesFromCSV(csvFile, 166);
         wFCM clustering = new wFCM(timeSeriesData, 166, 3);
         int[] clusterLabels = clustering.fit();
+        DataLoader.writeLabelsIntoCSV("./res/air-wfcm.csv", clusterLabels);
 
         long end = System.currentTimeMillis();
         System.out.println("Time taken: " + (end - start) + "ms");
@@ -50,7 +52,7 @@ public class wFCM {
     public int[] fit(){
         int optimalPartNum = findOptimalPartNum();
         System.out.println("Optimal part number: " + optimalPartNum);
-        tigsOfAllData = transformTIG(optimalPartNum);
+        tigsOfAllData = transformTIG(25);
         double[][] U = initialize();
         fuzzyClustering(U);
         return labels;

@@ -21,7 +21,7 @@ public class FrOKShape {
     List<double[]> data;
     int[] labels;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         //        String csvFile = "/Users/suyx1999/Downloads/jinfeng.csv";
         String csvFile = "/Users/suyx1999/ExpData/shape/air.csv";
 
@@ -31,6 +31,7 @@ public class FrOKShape {
         clustering.fit();
         long end = System.currentTimeMillis();
         System.out.println("Time taken: " + (end - start) + "ms");
+        DataLoader.writeLabelsIntoCSV("./res/air-frok.csv", clustering.labels);
     }
 
     public FrOKShape(List<double[]> data, int seqLen, int cluserNum, double alpha, int max_iter) {
