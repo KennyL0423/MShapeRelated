@@ -1,8 +1,6 @@
 package org.util;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,5 +35,18 @@ public class DataLoader {
         }
 
         return timeSeriesData;
+    }
+
+    public static void writeLabelsIntoCSV(String filePath, int[] labels) throws IOException{
+        File file = new File(filePath);
+        File father = file.getParentFile();
+        if (!father.exists()) father.mkdirs();
+
+        BufferedWriter bufferedWriter =  new BufferedWriter(new FileWriter(file, false));
+        for (int label : labels) {
+            bufferedWriter.write(label + "\n");
+        }
+        bufferedWriter.flush();
+        bufferedWriter.close();
     }
 }

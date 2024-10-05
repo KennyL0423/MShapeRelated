@@ -47,14 +47,13 @@ public class LinearRegression {
     }
 
     public double[] findInfoGran(){
-        double a, b;
         double meanv = 0.0;
         for (int i = 0; i < residuals.length; i++) {
             meanv += residuals[i];
         }
         meanv /= residuals.length;
-        double va = Double.MIN_VALUE;
-        double vb = Double.MIN_VALUE;
+        double va = Double.NEGATIVE_INFINITY;
+        double vb = Double.NEGATIVE_INFINITY;
 
         double[] sortedRes = residuals.clone();
         Arrays.sort(sortedRes);
@@ -69,10 +68,16 @@ public class LinearRegression {
         int nplus = sortedRes.length - meanIdx - 1;
         int rightIdx = meanIdx + 1;
         int leftIdx = meanIdx;
-        int leftCard = 0, rightCard = 0;
+        int leftCard = 1, rightCard = 1;
         while (true){
+            if (leftIdx == 0 || rightIdx == sortedRes.length - 1){
+                break;
+            }
             double tmp_va = leftCard * 1.0 / nminus * (1- (meanv - sortedRes[leftIdx])/ (sortedRes[rightIdx] - sortedRes[leftIdx]));
             double tmp_vb = rightCard * 1.0 / nplus * (1- (sortedRes[rightIdx] - meanv)/ (sortedRes[rightIdx] - sortedRes[leftIdx]));
+            if (tmp_va <= va && tmp_vb <= vb){
+                break;
+            }
             if (tmp_va > va){
                 va = tmp_va;
                 leftCard++;
@@ -83,11 +88,8 @@ public class LinearRegression {
                 rightCard++;
                 rightIdx++;
             }
-            if (tmp_va <= va && tmp_vb <= vb){
-                break;
-            }
         }
-        return new double[]{va, vb};
+        return new double[]{sortedRes[leftIdx], sortedRes[rightIdx]};
     }
 
     public double getSlope() {

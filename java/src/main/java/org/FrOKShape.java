@@ -19,22 +19,18 @@ public class FrOKShape {
     int clusterNum;
     double alpha;
     List<double[]> data;
+    int[] labels;
 
     public static void main(String[] args) {
-        long start = System.currentTimeMillis();
-//        String csvFile = "/Users/suyx1999/Downloads/jinfeng.csv";
+        //        String csvFile = "/Users/suyx1999/Downloads/jinfeng.csv";
         String csvFile = "/Users/suyx1999/ExpData/shape/air.csv";
+
+        long start = System.currentTimeMillis();
         List<double[]> timeSeriesData = DataLoader.readTimeSeriesFromCSV(csvFile, 166);
-
         FrOKShape clustering = new FrOKShape(timeSeriesData,  166, 3, 0.6, 100);
-        int[] clusterLabels = clustering.fit();
-
+        clustering.fit();
         long end = System.currentTimeMillis();
         System.out.println("Time taken: " + (end - start) + "ms");
-
-//        for (int i = 0; i < clusterLabels.length; i++) {
-//            System.out.println("Time series " + i + " is assigned to cluster " + clusterLabels[i]);
-//        }
     }
 
     public FrOKShape(List<double[]> data, int seqLen, int cluserNum, double alpha, int max_iter) {
@@ -54,11 +50,11 @@ public class FrOKShape {
     public int[] FrOKShapeClustering(List<double[]> X, int K) {
         int n = X.size();
         int l = X.get(0).length;
-        int[] labels = new int[n]; // Cluster labels
+        int[] tmpLabels = new int[n]; // Cluster labels
 
         Random random = new Random();
         for (int i = 0; i < n; i++) {
-            labels[i] = random.nextInt(K);
+            tmpLabels[i] = random.nextInt(K);
         }
 
         // Cluster centers
@@ -66,11 +62,11 @@ public class FrOKShape {
 
         for (int iter = 0; iter < MAX_ITERATIONS; iter++) {
             // Store previous labels
-            int[] previousLabels = Arrays.copyOf(labels, labels.length);
+            int[] previousLabels = Arrays.copyOf(tmpLabels, tmpLabels.length);
 
             // Update cluster centers using DeterminClusteringCenter (DBA-based)
             for (int k = 0; k < K; k++) {
-                kCenter[k] = DeterminClusteringCenter(X, labels, k);
+                kCenter[k] = DeterminClusteringCenter(X, tmpLabels, k);
             }
 
             // Update labels for each time series based on FrOSBD distance
@@ -84,15 +80,16 @@ public class FrOKShape {
                         bestCluster = k;
                     }
                 }
-                labels[i] = bestCluster;
+                tmpLabels[i] = bestCluster;
             }
-            if (Arrays.equals(previousLabels, labels)) {
+            if (Arrays.equals(previousLabels, tmpLabels)) {
                 System.out.println("Converged after " + iter + " iterations.");
                 break;
             }
             System.out.println("Iteration " + iter + " completed.");
         }
-        return labels;
+        this.labels = tmpLabels;
+        return tmpLabels;
     }
 
     // Calculate the Determining Clustering Center using DBA
