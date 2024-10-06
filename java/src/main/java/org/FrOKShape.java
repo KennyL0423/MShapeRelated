@@ -39,6 +39,7 @@ public class FrOKShape {
         this.seqLen = seqLen;
         this.clusterNum = cluserNum;
         this.alpha = alpha;
+        this.MAX_ITERATIONS = 100;
     }
 
     public int[] fit(){

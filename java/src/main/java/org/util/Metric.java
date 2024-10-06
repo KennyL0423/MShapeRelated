@@ -26,4 +26,20 @@ public class Metric {
         int totalPairs = n * (n - 1) / 2;
         return (double) (a + b) / totalPairs;
     }
+
+    public static double calMean(double[] data) {
+        double sum = 0.0;
+        for (double num : data) {
+            sum += num;
+        }
+        return sum / data.length;
+    }
+
+    public static double calStd(double[] data, double mean) {
+        double sum = 0.0;
+        for (double num : data) {
+            sum += Math.pow(num - mean, 2);
+        }
+        return Math.sqrt(sum / data.length);
+    }
 }

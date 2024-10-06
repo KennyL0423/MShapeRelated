@@ -17,8 +17,9 @@ public class PAM {
         this.labels = new int[data.size()];
     }
 
-    public void fit(){
+    public int[] fit(){
         pamClustering(data, clusterNum, labels);
+        return labels;
     }
 
     private void pamClustering(List<double[]> sequences, int k, int[] assignment) {
