@@ -49,4 +49,18 @@ public class DataLoader {
         bufferedWriter.flush();
         bufferedWriter.close();
     }
+
+    public static int[] readLabelsFromCSV(String filePath) {
+        List<Integer> labels = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                labels.add(Integer.parseInt(line));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return labels.stream().mapToInt(i -> i).toArray();
+    }
+
 }

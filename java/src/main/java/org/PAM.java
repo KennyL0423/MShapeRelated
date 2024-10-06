@@ -5,8 +5,23 @@ import java.util.List;
 import java.util.Random;
 
 public class PAM {
+    List<double[]> data;
+    int seqLen;
+    int clusterNum;
+    int[] labels;
 
-    public static int[] pamClustering(List<double[]> sequences, int k, int[] assignment) {
+    public PAM(List<double[]> data, int seqLen, int clusterNum){
+        this.data = data;
+        this.seqLen = seqLen;
+        this.clusterNum = clusterNum;
+        this.labels = new int[data.size()];
+    }
+
+    public void fit(){
+        pamClustering(data, clusterNum, labels);
+    }
+
+    private void pamClustering(List<double[]> sequences, int k, int[] assignment) {
         int n = sequences.size();
         System.out.println(n);
         ArrayList<Integer> medoidIndexes = selectInitialMedoids(sequences, n, k);
@@ -36,10 +51,10 @@ public class PAM {
         for (int i = 0; i < medoidIndexes.size(); i++) {
             indexes[i] = medoidIndexes.get(i);
         }
-        return indexes;
+        this.labels = indexes;
     }
 
-    private static ArrayList<Integer> selectInitialMedoids(List<double[]> sequences, int n, int k) {
+    private ArrayList<Integer> selectInitialMedoids(List<double[]> sequences, int n, int k) {
         ArrayList<Integer> indexes = new ArrayList<>();
         Random rand = new Random();
         int firstMedoid = rand.nextInt(n);
@@ -66,7 +81,7 @@ public class PAM {
         return indexes;
     }
 
-    private static void assignSeq(List<double[]> sequences, ArrayList<Integer> indexes, int[] assignment) {
+    private void assignSeq(List<double[]> sequences, ArrayList<Integer> indexes, int[] assignment) {
         for (int i = 0; i < sequences.size(); i++) {
             double minDistance = Double.MAX_VALUE;
             int closestMedoidIndex = -1;
@@ -81,7 +96,7 @@ public class PAM {
         }
     }
 
-    private static int findNewMedoid(List<double[]> sequences, int oldMedoidIndex, int[] assignment, int clusterIndex) {
+    private int findNewMedoid(List<double[]> sequences, int oldMedoidIndex, int[] assignment, int clusterIndex) {
         double minTotalDistance = Double.MAX_VALUE;
         int newMedoidIndex = oldMedoidIndex;
         for (int i = 0; i < sequences.size(); i++) {
@@ -102,13 +117,13 @@ public class PAM {
     }
 
     // You need to implement this function to compute the distance between two sequences
-    private static double computeDistance(double[] seq1, double[] seq2) {
+    private double computeDistance(double[] seq1, double[] seq2) {
 //        return msm(seq1, seq2, 1);
         return dtw(seq1, seq2);
     }
 
 
-    public static  double msm(double[] a, double[] b, double c) {
+    public double msm(double[] a, double[] b, double c) {
         int m = a.length;
         double[][] CM = new  double[m + 1][m + 1];
 
@@ -136,7 +151,7 @@ public class PAM {
         return CM[m][m];
     }
 
-    public static double C(double x, double y, double z, double c) {
+    public double C(double x, double y, double z, double c) {
         if (y <= x && x <= z || y >= x && x >= z) {
             return c;
         } else {
@@ -144,7 +159,7 @@ public class PAM {
         }
     }
 
-    public static double dtw(double[] s, double[] t) {
+    public double dtw(double[] s, double[] t) {
         int n = s.length;
         int m = t.length;
         double[][] dtw = new double[n + 1][m + 1];

@@ -27,19 +27,18 @@ public class FrOKShape {
 
         long start = System.currentTimeMillis();
         List<double[]> timeSeriesData = DataLoader.readTimeSeriesFromCSV(csvFile, 166);
-        FrOKShape clustering = new FrOKShape(timeSeriesData,  166, 3, 0.6, 100);
+        FrOKShape clustering = new FrOKShape(timeSeriesData,  166, 3, 0.6);
         clustering.fit();
         long end = System.currentTimeMillis();
         System.out.println("Time taken: " + (end - start) + "ms");
         DataLoader.writeLabelsIntoCSV("./res/air-frok.csv", clustering.labels);
     }
 
-    public FrOKShape(List<double[]> data, int seqLen, int cluserNum, double alpha, int max_iter) {
+    public FrOKShape(List<double[]> data, int seqLen, int cluserNum, double alpha) {
         this.data = data;
         this.seqLen = seqLen;
         this.clusterNum = cluserNum;
         this.alpha = alpha;
-        this.MAX_ITERATIONS = max_iter;
     }
 
     public int[] fit(){

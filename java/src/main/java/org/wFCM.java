@@ -51,7 +51,7 @@ public class wFCM {
 
     public int[] fit(){
         int optimalPartNum = findOptimalPartNum();
-        System.out.println("Optimal part number: " + optimalPartNum);
+//        System.out.println("Optimal part number: " + optimalPartNum);
         tigsOfAllData = transformTIG(25);
         double[][] U = initialize();
         fuzzyClustering(U);
