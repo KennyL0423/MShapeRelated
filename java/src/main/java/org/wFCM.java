@@ -17,7 +17,7 @@ public class wFCM {
     double THRESHOLD = 1e-4;
     int M = 2; // Fuzzification coefficient
     int alpha = 5;
-    int qmax = 50;
+    int qmax = 25;
     int seqLen;
     int clusterNum;
     List<double[]> data;
