@@ -18,24 +18,24 @@ public class PAM {
     }
 
     public int[] fit(){
-        pamClustering(data, clusterNum, labels);
+        pamClustering(data, clusterNum);
         return labels;
     }
 
-    private void pamClustering(List<double[]> sequences, int k, int[] assignment) {
+    private void pamClustering(List<double[]> sequences, int k) {
         int n = sequences.size();
         System.out.println(n);
         ArrayList<Integer> medoidIndexes = selectInitialMedoids(sequences, n, k);
 
         boolean changed = true;
-        int maxIter = 6, iter = 0;
+        int maxIter = 100, iter = 0;
         while (changed && iter < maxIter) {
             changed = false;
-            assignSeq(sequences, medoidIndexes, assignment);
+            assignSeq(sequences, medoidIndexes, this.labels);
 
             ArrayList<Integer> newMedoidIndices = new ArrayList<>();
             for (int i = 0; i < k; i++) {
-                int newMedoidIndex = findNewMedoid(sequences, medoidIndexes.get(i), assignment, i);
+                int newMedoidIndex = findNewMedoid(sequences, medoidIndexes.get(i), this.labels, i);
                 newMedoidIndices.add(newMedoidIndex);
                 if (newMedoidIndex != medoidIndexes.get(i)) {
                     changed = true;
@@ -48,11 +48,7 @@ public class PAM {
             iter += 1;
             System.out.println(iter);
         }
-        int [] indexes = new int[medoidIndexes.size()];
-        for (int i = 0; i < medoidIndexes.size(); i++) {
-            indexes[i] = medoidIndexes.get(i);
-        }
-        this.labels = indexes;
+
     }
 
     private ArrayList<Integer> selectInitialMedoids(List<double[]> sequences, int n, int k) {

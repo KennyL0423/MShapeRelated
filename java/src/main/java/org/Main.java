@@ -11,9 +11,19 @@ enum DATASET{
     ECG("ecg", 140, 5),
     WAFER("Wafer", 152, 2),
     PATTERN("TwoPatterns", 128, 4),
-    ELEC("ElectricDevices", 96, 7),
     FACES("FacesUCR", 131, 14),
-    ADIAC("Adiac", 176, 37);
+    ADIAC("Adiac", 176, 37),
+    CBF("CBF", 128, 3),
+    DIATOMSIZEREDUCTION("DiatomSizeReduction", 345, 4),
+    DISTALPHALANXOUTLINEAGEGROUP("DistalPhalanxOutlineAgeGroup", 80, 3),
+    DISTALPHALANXOUTLINECORRECT("DistalPhalanxOutlineCorrect", 80, 2),
+    EARTHQUAKES("Earthquakes", 512, 2),
+    ELECTRICDEVICES("ElectricDevices", 96, 7),
+    FORDA("FordA", 500, 2),
+    FORDB("FordB", 500, 2),
+    FREEZERREGULARTRAIN("FreezerRegularTrain", 301, 2),
+    HAM("Ham", 431, 2),
+    ITALYPOWERDEMAND("ItalyPowerDemand", 24, 2);
 
 
     int seqLen;
@@ -27,12 +37,11 @@ enum DATASET{
 }
 public class Main {
 
-    static String method = "frok";
+    static String method = "pam";
+    static DATASET dataset = DATASET.ELECTRICDEVICES;
 
 
     public static void main(String[] args) throws IOException {
-        DATASET dataset = DATASET.WAFER;
-
         String csvFile = "../datasets/time_series/" + dataset.fileName + ".csv";
 
         int iter = 1;
@@ -58,7 +67,7 @@ public class Main {
                 default:
                     throw new IllegalArgumentException("Invalid method");
             }
-            int[] truth = DataLoader.readLabelsFromCSV("../labels/" + dataset + ".csv");
+            int[] truth = DataLoader.readLabelsFromCSV("../labels/" + dataset.fileName + ".csv");
             RIarray[i] = Metric.calculateRandIndex(pred, truth);
         }
         long end = System.currentTimeMillis();
