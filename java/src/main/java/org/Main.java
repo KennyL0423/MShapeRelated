@@ -23,7 +23,16 @@ enum DATASET{
     FORDB("FordB", 500, 2),
     FREEZERREGULARTRAIN("FreezerRegularTrain", 301, 2),
     HAM("Ham", 431, 2),
-    ITALYPOWERDEMAND("ItalyPowerDemand", 24, 2);
+    ITALYPOWERDEMAND("ItalyPowerDemand", 24, 2),
+    BME("BME", 128, 3),
+    COFFEE("Coffee", 286, 2),
+    DODGERLOOPDAY("DodgerLoopDay", 288, 7),
+    DODGERLOOPGAME("DodgerLoopGame", 288, 7),
+    MEAT("Meat", 448, 3),
+    GUNPOINT("GunPoint", 150, 2),
+    PLANE("Plane", 144, 7),
+    SMOOTHSUBSPACE("SmoothSubspace", 15, 3),
+    WINE("Wine", 234, 2);
 
 
     int seqLen;
@@ -37,14 +46,14 @@ enum DATASET{
 }
 public class Main {
 
-    static String method = "pam";
-    static DATASET dataset = DATASET.ELECTRICDEVICES;
+    static String method = "wfcm";
+    static DATASET dataset = DATASET.COFFEE;
 
 
     public static void main(String[] args) throws IOException {
         String csvFile = "../datasets/time_series/" + dataset.fileName + ".csv";
 
-        int iter = 1;
+        int iter = 3;
         long start = System.currentTimeMillis();
         double[] RIarray = new double[iter];
 
