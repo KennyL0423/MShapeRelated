@@ -181,7 +181,9 @@ public class wFCM {
             U = newU;
             prototypes = newPrototypes;
 
-            System.out.println("Iteration " + iter + ", maxChange = " + maxChange);
+            if (iter % 10 == 0)
+                System.out.println("Iteration " + iter + ", maxChange = " + maxChange);
+            
             if (maxChange < THRESHOLD) {
                 System.out.println("Converged after " + iter + " iterations.");
                 break;

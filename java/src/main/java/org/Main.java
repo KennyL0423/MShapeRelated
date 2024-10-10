@@ -54,7 +54,7 @@ enum DATASET{
 }
 public class Main {
 
-    static DATASET dataset = DATASET.COMPUTERS;
+    static DATASET dataset = DATASET.HAPTICS;
 
 
     public static void main(String[] args) throws IOException {
@@ -97,16 +97,16 @@ public class Main {
         System.out.println("wfcm Time taken: " + (end - start) / iter + "ms");
 
 
-        start = System.currentTimeMillis();
-        List<double[]> timeSeriesData = DataLoader.readTimeSeriesFromCSV(csvFile, dataset.seqLen);
-        int[] pred;
-        PAM pam = new PAM(timeSeriesData, dataset.seqLen, dataset.clusterNum);
-        pred = pam.fit();
-        int[] truth = DataLoader.readLabelsFromCSV("../labels/" + dataset.fileName + ".csv");
-
-        end = System.currentTimeMillis();
-        System.out.println("pam Rand Index: " + Metric.calculateRandIndex(pred, truth));
-        System.out.println("pam Time taken: " + (end - start) / iter + "ms");
+//        start = System.currentTimeMillis();
+//        List<double[]> timeSeriesData = DataLoader.readTimeSeriesFromCSV(csvFile, dataset.seqLen);
+//        int[] pred;
+//        PAM pam = new PAM(timeSeriesData, dataset.seqLen, dataset.clusterNum);
+//        pred = pam.fit();
+//        int[] truth = DataLoader.readLabelsFromCSV("../labels/" + dataset.fileName + ".csv");
+//
+//        end = System.currentTimeMillis();
+//        System.out.println("pam Rand Index: " + Metric.calculateRandIndex(pred, truth));
+//        System.out.println("pam Time taken: " + (end - start) / iter + "ms");
 
     }
 }

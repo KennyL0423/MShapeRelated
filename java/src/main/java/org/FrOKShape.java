@@ -87,7 +87,8 @@ public class FrOKShape {
                 System.out.println("Converged after " + iter + " iterations.");
                 break;
             }
-            System.out.println("Iteration " + iter + " completed.");
+            if (iter % 10 == 0)
+                System.out.println("Iteration " + iter + " completed.");
         }
         this.labels = tmpLabels;
         return tmpLabels;
