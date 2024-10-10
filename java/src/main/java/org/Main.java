@@ -32,7 +32,15 @@ enum DATASET{
     GUNPOINT("GunPoint", 150, 2),
     PLANE("Plane", 144, 7),
     SMOOTHSUBSPACE("SmoothSubspace", 15, 3),
-    WINE("Wine", 234, 2);
+    WINE("Wine", 234, 2),
+    COMPUTERS("Computers", 720, 2),
+    WORMS("Worms", 900, 5),
+    HAPTICS("Haptics", 1092, 5),
+    POWERCONS("PowerCons", 144, 2),
+    INSECTEPGREGULARTRAIN("InsectEPGRegularTrain", 601, 3),
+    FUNGI("Fungi", 201, 18),
+    MELBOURNEPEDESTRIAN("MelbournePedestrian", 24, 10),
+    CHINATOWN("Chinatown", 24, 2);
 
 
     int seqLen;
@@ -46,46 +54,59 @@ enum DATASET{
 }
 public class Main {
 
-    static String method = "wfcm";
-    static DATASET dataset = DATASET.COFFEE;
+    static DATASET dataset = DATASET.COMPUTERS;
 
 
     public static void main(String[] args) throws IOException {
         String csvFile = "../datasets/time_series/" + dataset.fileName + ".csv";
+        int iter = 2;
+        long start, end;
+        double mean, std;
+        double[] RIarray;
 
-        int iter = 3;
-        long start = System.currentTimeMillis();
-        double[] RIarray = new double[iter];
-
+        start = System.currentTimeMillis();
+        RIarray = new double[iter];
         for (int i = 0; i < iter; i++) {
             List<double[]> timeSeriesData = DataLoader.readTimeSeriesFromCSV(csvFile, dataset.seqLen);
             int[] pred;
-            switch (method){
-                case "wfcm":
-                    wFCM wfcm = new wFCM(timeSeriesData, dataset.seqLen, dataset.clusterNum);
-                    pred = wfcm.fit();
-                    break;
-                case "frok":
-                    FrOKShape frok = new FrOKShape(timeSeriesData, dataset.seqLen, dataset.clusterNum, 0.6);
-                    pred = frok.fit();
-                    break;
-                case "pam":
-                    PAM pam = new PAM(timeSeriesData, dataset.seqLen, dataset.clusterNum);
-                    pred = pam.fit();
-                    break;
-                default:
-                    throw new IllegalArgumentException("Invalid method");
-            }
+            FrOKShape frok = new FrOKShape(timeSeriesData, dataset.seqLen, dataset.clusterNum, 0.6);
+            pred = frok.fit();
             int[] truth = DataLoader.readLabelsFromCSV("../labels/" + dataset.fileName + ".csv");
             RIarray[i] = Metric.calculateRandIndex(pred, truth);
         }
-        long end = System.currentTimeMillis();
+        end = System.currentTimeMillis();
+        mean = Metric.calMean(RIarray);
+        std = Metric.calStd(RIarray, mean);
+        System.out.println("FROK Rand Index: " + mean + " +- " + std);
+        System.out.println("FROK Time taken: " + (end - start) / iter + "ms");
 
-        double mean = Metric.calMean(RIarray);
-        double std = Metric.calStd(RIarray, mean);
-        System.out.println("Rand Index: " + mean + " +- " + std);
+        start = System.currentTimeMillis();
+        RIarray = new double[iter];
+        for (int i = 0; i < iter; i++) {
+            List<double[]> timeSeriesData = DataLoader.readTimeSeriesFromCSV(csvFile, dataset.seqLen);
+            int[] pred;
+            wFCM wfcm = new wFCM(timeSeriesData, dataset.seqLen, dataset.clusterNum);
+            pred = wfcm.fit();
+            int[] truth = DataLoader.readLabelsFromCSV("../labels/" + dataset.fileName + ".csv");
+            RIarray[i] = Metric.calculateRandIndex(pred, truth);
+        }
+        end = System.currentTimeMillis();
+        mean = Metric.calMean(RIarray);
+        std = Metric.calStd(RIarray, mean);
+        System.out.println("wfcm Rand Index: " + mean + " +- " + std);
+        System.out.println("wfcm Time taken: " + (end - start) / iter + "ms");
 
-//        DataLoader.writeLabelsIntoCSV("./res/"+ dataset + "-" + method + ".csv", pred);
-        System.out.println("Time taken: " + (end - start) / iter + "ms");
+
+        start = System.currentTimeMillis();
+        List<double[]> timeSeriesData = DataLoader.readTimeSeriesFromCSV(csvFile, dataset.seqLen);
+        int[] pred;
+        PAM pam = new PAM(timeSeriesData, dataset.seqLen, dataset.clusterNum);
+        pred = pam.fit();
+        int[] truth = DataLoader.readLabelsFromCSV("../labels/" + dataset.fileName + ".csv");
+
+        end = System.currentTimeMillis();
+        System.out.println("pam Rand Index: " + Metric.calculateRandIndex(pred, truth));
+        System.out.println("pam Time taken: " + (end - start) / iter + "ms");
+
     }
 }
