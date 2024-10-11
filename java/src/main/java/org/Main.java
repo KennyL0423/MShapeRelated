@@ -41,7 +41,7 @@ enum DATASET{
 }
 public class Main {
 
-    static DATASET dataset = DATASET.CBF;
+    static DATASET dataset = DATASET.HAPTICS;
     public static void main(String[] args) throws IOException {
         String csvFile = "../datasets/time_series/" + dataset.fileName + ".csv";
         int iter = 3;

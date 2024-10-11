@@ -64,13 +64,21 @@ for routing_iter_ii = 1:Parameter.routing_iter_num
         end
     end
     temp_Att_views_c(1,:,:) = Parameter.Att_views_c';
+    % size(temp_Att_views_c); % 1, 5, 2
 %     X_forward_SqNorm = repmat(sum(X_forward.^2,1),mT,1,1);
     X_s = sum(repmat(temp_Att_views_c,mT,1,1) .* X_forward,3); 
+    % size(X_s); % N, 5
     X_s_SqNorm = repmat(sum(X_s.^2,1),mT,1);
     X_v = X_s .* sqrt(X_s_SqNorm) ./ (1 + X_s_SqNorm);
 %     Att_views_b_add(:,:) = sum(X_forward .* repmat(X_v,1,1,vv) ./ X_forward_SqNorm,1);
     Att_views_b_add(:,:) = sum(X_forward .* repmat(X_v,1,1,vv),1);
+    % size(Att_views_b_add);
+    if Parameter.num_view == 1 && routing_iter_ii == 1
+        Att_views_b_add = Att_views_b_add';
+    end
+    % size(Att_views_b_add); % 5, num_view
     Parameter.Att_views_b = Parameter.Att_views_b + Att_views_b_add';
+    % size(Parameter.Att_views_b) % num_view, 5
 end
 
 

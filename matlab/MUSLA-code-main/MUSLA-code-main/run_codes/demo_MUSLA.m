@@ -2,27 +2,80 @@ clear;
 addpath(genpath('../functions'))
 addpath(genpath('../datasets'))
 
-%% load data
-file = 'Libras';
+Parameter.num_view = 1;
+file = 'BME';  % 修改为你数据集的名称
+train_file_path = ['datasets/' file '/' file '_TRAIN.tsv'];  % 指向 .tsv 文件路径
+test_file_path = ['datasets/' file '/' file '_TEST.tsv'];    % 指向 .tsv 文件路径
 
-Parameter.num_view = 2
-for temp_num_view = 1:Parameter.num_view
-    path_train = ['datasets/' file '/' file 'Dimension' num2str(temp_num_view) '_TRAIN.arff']
-    Data_train = read_file(path_train);
-    N_train = size(Data_train,1);
-    path_test = ['datasets/' file '/' file 'Dimension' num2str(temp_num_view) '_TEST.arff']
-    Data_test = read_file(path_test);
-    max_value = max(max([Data_train(:,1:end-1);Data_test(:,1:end-1)]));
-    min_value = min(min([Data_train(:,1:end-1);Data_test(:,1:end-1)]));
-    Data = [Data_train; Data_test];
-    [mD,nD]=size(Data);
-    Y_true=Data(:,end);
-%     Y_true=Data(N_train+1:end,end); % test
-    DT=Data(:,1:end-1);
-    DT=(DT-min_value)/(max_value-min_value); % regularize time series data;
-    T{temp_num_view,1}=[(nD-1)*ones(mD,1),DT]; % Each element in first column of time series matrix is the length of the time series in that row;
-end
-N=mD; % Number of time series
+% 读取train和test数据
+fprintf('正在读取训练数据: %s\n', train_file_path);
+Data_train = read_tsv_file(train_file_path);
+fprintf('训练数据读取完成，大小为: %d 行 %d 列\n', size(Data_train));
+
+fprintf('正在读取测试数据: %s\n', test_file_path);
+Data_test = read_tsv_file(test_file_path);
+fprintf('测试数据读取完成，大小为: %d 行 %d 列\n', size(Data_test));
+
+% 数据归一化处理
+N_train = size(Data_train, 1);
+max_value = max(max([Data_train(:, 2:end); Data_test(:, 2:end)]));
+min_value = min(min([Data_train(:, 2:end); Data_test(:, 2:end)]));
+fprintf('最大值: %.4f, 最小值: %.4f\n', max_value, min_value);
+
+% 将train和test数据合并
+% 分离标签和数据
+train_labels = Data_train(:, 1);  % 提取 Data_train 的第一列作为 labels
+train_data = Data_train(:, 2:end);  % 提取剩余部分作为数据
+
+test_labels = Data_test(:, 1);  % 提取 Data_test 的第一列作为 labels
+test_data = Data_test(:, 2:end);  % 提取剩余部分作为数据
+
+% 合并数据：先将训练数据和测试数据合并，再合并标签
+combined_data = [train_data; test_data];  % 合并数据部分
+combined_labels = [train_labels; test_labels];  % 合并标签部分
+
+% 再将合并后的 labels 和 data 合并为完整的数据集
+Data = [combined_labels, combined_data];  % 合并后的结果
+
+% 检查合并结果
+fprintf('合并后的数据大小: %d 行 %d 列\n', size(Data));
+
+[mD, nD] = size(Data);
+Y_true = Data(:, 1);  % 第一列是标签
+DT = Data(:, 2:end);  % 其余是时间序列数据
+fprintf('合并后的标签: %d 行 %d 列\n', size(Y_true));
+fprintf('合并后的数据: %d 行 %d 列\n', size(DT));
+
+% 数据归一化处理
+DT = (DT - min_value) / (max_value - min_value);  % 归一化数据
+
+% 将数据转为期望的格式，每一行的第一个值是序列长度
+T{1, 1} = [(nD - 1) * ones(mD, 1), DT];  % 每行的第一列是时间序列长度，后面是时间序列数据
+fprintf('T{1, 1}: %d 行 %d 列\n', size(T{1, 1}));
+
+N = mD;  % 样本数量
+
+
+%% load data
+% file = 'Libras';
+% Parameter.num_view = 1
+% for temp_num_view = 1:Parameter.num_view
+%     path_train = ['datasets/' file '/' file 'Dimension' num2str(temp_num_view) '_TRAIN.arff']
+%     Data_train = read_file(path_train);
+%     N_train = size(Data_train,1);
+%     path_test = ['datasets/' file '/' file 'Dimension' num2str(temp_num_view) '_TEST.arff']
+%     Data_test = read_file(path_test);
+%     max_value = max(max([Data_train(:,1:end-1);Data_test(:,1:end-1)]));
+%     min_value = min(min([Data_train(:,1:end-1);Data_test(:,1:end-1)]));
+%     Data = [Data_train; Data_test];
+%     [mD,nD]=size(Data);
+%     Y_true=Data(:,end);
+% %     Y_true=Data(N_train+1:end,end); % test
+%     DT=Data(:,1:end-1);
+%     DT=(DT-min_value)/(max_value-min_value); % regularize time series data;
+%     T{temp_num_view,1}=[(nD-1)*ones(mD,1),DT]; % Each element in first column of time series matrix is the length of the time series in that row;
+% end
+% N=mD; % Number of time series
 
 %% Parameters initialization
 clear length
@@ -64,8 +117,11 @@ Parameter.lambda_2=Parameter.lambda_space(1);
 %% run MUSLA
 
 % load initialization_shapelets
-load([ 'out/'  file '/' file '_initialization1_all_views.mat']) % load initialization_shapelets
+% load([ 'out/'  file '/' file '_initialization1_all_views.mat']) % load initialization_shapelets
 % initialization_shapelets % or run initialization_shapelets.m
+
+initialization_shapelets()
+size(S_0_space)
 S_tp0=S_0_space{Lmin_j,Parameter.R,Parameter.k};
 if S_tp1_init_regu == 1
     S_tp0 = [S_tp0(:,1), z_regularization(S_tp0(:,2:end))]; 
@@ -101,3 +157,20 @@ end
 [L_A_tp1,A_tp1,temp_A0_tp1,Y_tp1,distX_tp1, Wv,Parameter] = update_MUSLA_AY(X_tp1,Parameter,Num_iter);% update L_G_tp1, the Laplacian matrix of similarity matrix G of time series. 
 
 [RI_test_combined,RI_test_alone,NMI_test_combined,NMI_test_alone] = compute_cluster_index(Y_true,Parameter,A_tp1,N_train)
+
+
+%% 读取 .tsv 文件
+function [Data] = read_tsv_file(file_path)
+    % 读取文件
+    fprintf('正在读取文件: %s\n', file_path);
+    
+    % 使用 readtable 读取 .tsv 文件，指定 'Delimiter' 为 '\t'
+    tbl = readtable(file_path, 'FileType', 'text', 'Delimiter', '\t', 'ReadVariableNames', false);
+
+    % 打印前几行数据进行检查
+    % disp('表格的前几行数据:');
+    % disp(tbl(1:min(5, height(tbl)), :));
+
+    Data = table2array(tbl); 
+    fprintf('Data 数据转换前的大小: %d 行 %d 列\n', size(Data));
+end
