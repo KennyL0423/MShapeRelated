@@ -13,6 +13,12 @@ public class LinearRegression {
 
 
     public LinearRegression(double[] y) {
+        if (y.length <= 1){
+            slope = y[0];
+            intercept = 0;
+            residuals = new double[2];
+            return;
+        }
         seq = y;
         int n = y.length;
         double sumX = 0;

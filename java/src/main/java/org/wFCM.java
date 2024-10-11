@@ -50,9 +50,10 @@ public class wFCM {
     }
 
     public int[] fit(){
-        int optimalPartNum = findOptimalPartNum();
+//        int optimalPartNum = findOptimalPartNum();
 //        System.out.println("Optimal part number: " + optimalPartNum);
-        tigsOfAllData = transformTIG(25);
+        int seqLen = data.get(0).length;
+        tigsOfAllData = transformTIG(24);
         double[][] U = initialize();
         fuzzyClustering(U);
         return labels;
@@ -183,7 +184,7 @@ public class wFCM {
 
             if (iter % 10 == 0)
                 System.out.println("Iteration " + iter + ", maxChange = " + maxChange);
-            
+
             if (maxChange < THRESHOLD) {
                 System.out.println("Converged after " + iter + " iterations.");
                 break;
@@ -211,6 +212,13 @@ public class wFCM {
     }
 
     private List<TIG> gbaryCenter(List<List<TIG>> members, List<Double> u){
+        if (members.size() == 0){
+            List<TIG> res =  new ArrayList<>();
+            for (int i = 0; i < 24; i++){
+                res.add(new TIG(0, new double[]{0, 0}, 0));
+            }
+            return res;
+        }
         int tigNum = members.get(0).size();
         double[] sumTigK = new double[tigNum];
         double[] sumTigInterval0 = new double[tigNum];

@@ -25,92 +25,85 @@ public class PAM {
     private void pamClustering(List<double[]> sequences, int k) {
         int n = sequences.size();
         System.out.println(n);
-        ArrayList<Integer> medoidIndexes = selectInitialMedoids(sequences, n, k);
-
+        List<Integer> medoids = initializeMedoids(data.size(), k);
         boolean changed = true;
         int maxIter = 100, iter = 0;
+
         while (changed && iter < maxIter) {
-            changed = false;
-            assignSeq(sequences, medoidIndexes, this.labels);
-
-            ArrayList<Integer> newMedoidIndices = new ArrayList<>();
-            for (int i = 0; i < k; i++) {
-                int newMedoidIndex = findNewMedoid(sequences, medoidIndexes.get(i), this.labels, i);
-                newMedoidIndices.add(newMedoidIndex);
-                if (newMedoidIndex != medoidIndexes.get(i)) {
-                    changed = true;
-                }
-            }
-
-            if (changed) {
-                medoidIndexes = newMedoidIndices;
+            int[] clusters = assignClusters(medoids);
+            List<Integer> newMedoids = updateMedoids(clusters, medoids);
+            if (newMedoids.equals(medoids)) {
+                changed = false;
+                medoids = newMedoids;
+            } else {
+                medoids = newMedoids;
             }
             iter += 1;
             System.out.println(iter);
         }
 
+
+        labels = assignClusters(medoids);
+
+
     }
 
-    private ArrayList<Integer> selectInitialMedoids(List<double[]> sequences, int n, int k) {
-        ArrayList<Integer> indexes = new ArrayList<>();
+    private List<Integer> initializeMedoids(int numPoints, int k) {
         Random rand = new Random();
-        int firstMedoid = rand.nextInt(n);
-        indexes.add(firstMedoid);
-
-        for (int i = 1; i < k; i++) {
-            int maxDistance = 0;
-            int maxDistanceIndex = 0;
-            for (int j = 0; j < n; j++) {
-                double minDistance = Double.MAX_VALUE;
-                for (int index : indexes) {
-                    double distance = computeDistance(sequences.get(j), sequences.get(index));
-                    if (distance < minDistance) {
-                        minDistance = distance;
-                    }
-                }
-                if (minDistance > maxDistance) {
-                    maxDistance = (int) minDistance;
-                    maxDistanceIndex = j;
-                }
+        List<Integer> medoids = new ArrayList<>();
+        while (medoids.size() < k) {
+            int medoid = rand.nextInt(numPoints);
+            if (!medoids.contains(medoid)) {
+                medoids.add(medoid);
             }
-            indexes.add(maxDistanceIndex);
         }
-        return indexes;
+        return medoids;
     }
 
-    private void assignSeq(List<double[]> sequences, ArrayList<Integer> indexes, int[] assignment) {
-        for (int i = 0; i < sequences.size(); i++) {
-            double minDistance = Double.MAX_VALUE;
-            int closestMedoidIndex = -1;
-            for (int j = 0; j < indexes.size(); j++) {
-                double distance = computeDistance(sequences.get(i), sequences.get(indexes.get(j)));
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    closestMedoidIndex = j;
+    // 将点分配到最近的 Medoid
+    private int[] assignClusters(List<Integer> medoids) {
+        int[] clusters = new int[data.size()];
+        for (int i = 0; i < data.size(); i++) {
+            double minDist = Double.MAX_VALUE;
+            int closestMedoid = -1;
+            for (int medoid : medoids) {
+                double dist = computeDistance(data.get(i), data.get(medoid));
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestMedoid = medoid;
                 }
             }
-            assignment[i] = closestMedoidIndex;
+            clusters[i] = closestMedoid;
         }
+        return clusters;
     }
 
-    private int findNewMedoid(List<double[]> sequences, int oldMedoidIndex, int[] assignment, int clusterIndex) {
-        double minTotalDistance = Double.MAX_VALUE;
-        int newMedoidIndex = oldMedoidIndex;
-        for (int i = 0; i < sequences.size(); i++) {
-            if (assignment[i] == clusterIndex) {
-                double totalDistance = 0;
-                for (int j = 0; j < sequences.size(); j++) {
-                    if (assignment[j] == clusterIndex) {
-                        totalDistance += computeDistance(sequences.get(i), sequences.get(j));
+    private double totalCost(int[] clusters) {
+        double cost = 0.0;
+        for (int i = 0; i < data.size(); i++) {
+            cost += computeDistance(data.get(i), data.get(clusters[i]));
+        }
+        return cost;
+    }
+
+    private List<Integer> updateMedoids(int[] clusters, List<Integer> medoids) {
+        double bestCost = totalCost(clusters);
+        for (int i = 0; i < medoids.size(); i++) {
+            int currentMedoid = medoids.get(i);
+            for (int j = 0; j < data.size(); j++) {
+                if (!medoids.contains(j)) {
+                    medoids.set(i, j);
+                    int[] newClusters = assignClusters(medoids);
+                    double newCost = totalCost(newClusters);
+                    if (newCost < bestCost) {
+                        bestCost = newCost;
+                        currentMedoid = j;
                     }
-                }
-                if (totalDistance < minTotalDistance) {
-                    minTotalDistance = totalDistance;
-                    newMedoidIndex = i;
+                    medoids.set(i, currentMedoid);  // 恢复当前 medoid
                 }
             }
         }
-        return newMedoidIndex;
+        return medoids;
     }
 
     // You need to implement this function to compute the distance between two sequences
